@@ -56,6 +56,35 @@ The game revolves around four main operation modes, allowing you to easily manag
 *   **📋 Product Requirements:** [PRD Document](./docs/PRD.md) - Product requirements document
 *   **🔧 Technical Design:** [TD Document](./docs/TD.md) - Technical design document
 
+## 🔌 Backend API Configuration
+
+The frontend now talks to your Go backend to create/sign in with a game ID and to load the matching coin balance. By default it targets `http://localhost:8080`, but you can override that by setting the `VITE_API_BASE_URL` environment variable, for example:
+
+```bash
+VITE_API_BASE_URL="https://your-go-service.example.com"
+```
+
+### Session & credit endpoints
+
+1. **Create or resume a game ID**
+
+   ```http
+   POST /api/session
+   ```
+
+   * Send an empty JSON body `{}` to generate a new `gameId`
+   * Send `{ "gameId": "existing-id" }` to validate and resume an existing save
+   * Successful responses return `{ "gameId": "xxxxx" }`
+
+2. **Fetch the current coin balance**
+
+   ```http
+   GET /api/credits?gameId=xxxxx
+   ```
+
+   * Use the `gameId` obtained from step 1
+   * Expected response: `{ "credits": 3000 }`
+
 ## 🚀 Roadmap
 
 We plan to add more exciting features in the future, including:

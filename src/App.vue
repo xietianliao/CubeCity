@@ -5,6 +5,7 @@ import BuildingDetails from './components/BuildingDetails.vue'
 import BuildingSidebar from './components/BuildingSidebar.vue'
 import DashboardFooter from './components/DashboardFooter.vue'
 import GameCanvas from './components/GameCanvas.vue'
+import LoginOverlay from './components/LoginOverlay.vue'
 import DialogLayer from './components/layers/DialogLayer.vue'
 import AppLayout from './components/layout/AppLayout.vue'
 import MapOverview from './components/MapOverview.vue'
@@ -19,6 +20,7 @@ const gameState = useGameState()
 // 时间管理 - 统一5秒计时器
 let dayInterval = null
 let isPaused = false
+let creditsAbortController = null
 
 // 页面可见性监听 - 实现HX-43离屏暂停功能
 function handleVisibilityChange() {
@@ -56,6 +58,14 @@ function handleKeydown(e) {
 }
 
 onMounted(() => {
+  creditsAbortController = new AbortController()
+  if (gameState.isAuthenticated) {
+    gameState.fetchCredits({ signal: creditsAbortController.signal }).catch(error => {
+      if (error?.name !== 'AbortError') {
+        console.error('[App] Failed to refresh credits on mount', error)
+      }
+    })
+  }
   window.addEventListener('keydown', handleKeydown)
   // 启动统一的5秒计时器（集成每日收益和稳定度更新）
   startDayTimer()
@@ -64,6 +74,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (creditsAbortController) {
+    creditsAbortController.abort()
+    creditsAbortController = null
+  }
   window.removeEventListener('keydown', handleKeydown)
   // 清除统一计时器
   if (dayInterval) {
@@ -130,6 +144,7 @@ onUnmounted(() => {
         <ToastContainer />
       </div>
       <DialogLayer />
+      <LoginOverlay v-if="!gameState.isAuthenticated" />
     </template>
   </AppLayout>
 </template>

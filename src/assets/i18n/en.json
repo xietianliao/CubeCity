@@ -14,6 +14,26 @@
       "musicSettings": "Music Settings"
     }
   },
+  "auth": {
+    "title": "Welcome back, Mayor",
+    "description": "Sign in with your existing game ID or generate a new one to sync your coins.",
+    "existingLabel": "Existing Game ID",
+    "existingPlaceholder": "Enter your game ID",
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "orDivider": "or",
+    "generate": "Generate New ID",
+    "generating": "Generating...",
+    "generatedNotice": "Save this ID to continue your city on other devices.",
+    "error": {
+      "required": "Please enter a valid game ID."
+    },
+    "currentId": "Game ID",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "logout": "Sign Out",
+    "remember": "Keep this ID safe. It links your progress to the server."
+  },
   "buildingSidebar": {
     "constructionUnits": "Construction Units",
     "operationMode": "Operation Mode",

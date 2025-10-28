@@ -58,6 +58,35 @@ Welcome to CubeCity! This is a cartoon-style 2.5D city simulation game where you
 *   **📋 产品需求:** [PRD 文档](./docs/PRD.md) - 产品需求文档
 *   **🔧 技术设计:** [TD 文档](./docs/TD.md) - 技术设计文档
 
+## 🔌 后端接口配置
+
+前端会与 Go 后端交互以创建 / 登录游戏 ID，并根据当前 ID 获取金币数据。默认会请求 `http://localhost:8080`，也可以通过设置环境变量 `VITE_API_BASE_URL` 指定你的后端地址，例如：
+
+```bash
+VITE_API_BASE_URL="https://your-go-service.example.com"
+```
+
+### 会话与金币接口约定
+
+1. **创建或登录游戏 ID**
+
+   ```http
+   POST /api/session
+   ```
+
+   * 传入空 JSON `{}` 将生成新的 `gameId`
+   * 传入 `{ "gameId": "已有ID" }` 用于验证并继续已有存档
+   * 成功时返回：`{ "gameId": "xxxxx" }`
+
+2. **查询金币余额**
+
+   ```http
+   GET /api/credits?gameId=xxxxx
+   ```
+
+   * `gameId` 为步骤 1 获得的 ID
+   * 返回示例：`{ "credits": 3000 }`
+
 ## 🚀 未来展望
 
 我们计划在未来为游戏增加更多有趣的功能，包括：
