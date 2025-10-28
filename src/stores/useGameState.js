@@ -1,4 +1,6 @@
 import { getAdjustedStabilityRate, STABILITY_CONFIG } from '@/constants/constants.js'
+import { createGameSession, loginWithGameId } from '@/js/services/auth-service.js'
+import { fetchCreditsFromApi } from '@/js/services/credits-service.js'
 import { getEffectiveBuildingValue } from '@/js/utils/building-interaction-utils.js'
 import { defineStore } from 'pinia'
 
@@ -19,6 +21,10 @@ export const useGameState = defineStore('gameState', {
     // 游戏时间和经济
     gameDay: 1,
     credits: 3000,
+    gameId: null,
+    authStatus: 'idle',
+    authError: null,
+    isFetchingCredits: false,
 
     // 城市属性
     territory: 16,
@@ -39,6 +45,7 @@ export const useGameState = defineStore('gameState', {
     // 移除：stabilityIntervalId: null,
   }),
   getters: {
+    isAuthenticated: state => Boolean(state.gameId),
     /**
      * 计算每日总收入（直接使用metadata中的detail，大幅提升性能）
      * @param {object} state - 游戏状态
@@ -228,12 +235,126 @@ export const useGameState = defineStore('gameState', {
     setSelectedPosition(position) {
       this.selectedPosition = position
     },
+    async fetchCredits({ signal } = {}) {
+      if (!this.gameId) {
+        return
+      }
+
+      this.isFetchingCredits = true
+      try {
+        const credits = await fetchCreditsFromApi({ signal, gameId: this.gameId })
+        if (Number.isFinite(credits)) {
+          this.setCredits(credits)
+        }
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        console.error('[GameState] Failed to fetch credits from API', error)
+        const message = this.language === 'zh'
+          ? '无法从服务器获取金币数据，已使用本地数值'
+          : 'Unable to fetch coin data from server, using local value'
+        this.addToast(message, 'error')
+      }
+      finally {
+        this.isFetchingCredits = false
+      }
+    },
     // 金币
     setCredits(credits) {
       this.credits = credits
     },
     updateCredits(credits) {
       this.credits += credits
+    },
+    setGameId(gameId) {
+      this.gameId = gameId
+    },
+    clearGameId() {
+      this.gameId = null
+    },
+    setAuthStatus(status) {
+      this.authStatus = status
+    },
+    setAuthError(message) {
+      this.authError = message
+    },
+    async loginWithExistingGameId(gameId, { signal } = {}) {
+      const trimmed = typeof gameId === 'string' ? gameId.trim() : ''
+      if (!trimmed) {
+        const message = this.language === 'zh'
+          ? '请输入有效的游戏ID'
+          : 'Please enter a valid game ID'
+        this.setAuthError(message)
+        throw new Error(message)
+      }
+
+      this.setAuthStatus('authenticating')
+      this.setAuthError(null)
+      try {
+        const resolvedId = await loginWithGameId(trimmed, { signal })
+        this.setGameId(resolvedId)
+        await this.fetchCredits({ signal })
+        const message = this.language === 'zh'
+          ? '登录成功，金币已刷新'
+          : 'Signed in and refreshed coins'
+        this.addToast(message, 'success')
+        return resolvedId
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        const message = this.language === 'zh'
+          ? '登录失败，请检查游戏ID'
+          : 'Login failed, please verify the game ID'
+        this.setAuthError(message)
+        this.addToast(message, 'error')
+        throw error
+      }
+      finally {
+        this.setAuthStatus('idle')
+      }
+    },
+    async createNewGameSession({ signal } = {}) {
+      this.setAuthStatus('authenticating')
+      this.setAuthError(null)
+      try {
+        const newGameId = await createGameSession({ signal })
+        this.setGameId(newGameId)
+        await this.fetchCredits({ signal })
+        const message = this.language === 'zh'
+          ? `已创建新的游戏ID：${newGameId}`
+          : `Created a new game ID: ${newGameId}`
+        this.addToast(message, 'success')
+        return newGameId
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        const message = this.language === 'zh'
+          ? '创建游戏ID失败，请稍后再试'
+          : 'Unable to create a new game ID right now'
+        this.setAuthError(message)
+        this.addToast(message, 'error')
+        throw error
+      }
+      finally {
+        this.setAuthStatus('idle')
+      }
+    },
+    logout() {
+      this.clearGameId()
+      this.setAuthStatus('idle')
+      this.setAuthError(null)
+      this.isFetchingCredits = false
+      this.credits = 3000
+      const message = this.language === 'zh'
+        ? '已退出当前账号'
+        : 'Signed out of the current session'
+      this.addToast(message, 'info')
     },
     setTerritory(territory) {
       this.territory = territory

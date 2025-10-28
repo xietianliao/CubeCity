@@ -15,6 +15,26 @@
       "musicSettings": "音乐设置"
     }
   },
+  "auth": {
+    "title": "欢迎回来，市长",
+    "description": "使用已有的游戏ID登录，或生成新的ID来同步你的金币。",
+    "existingLabel": "已有游戏ID",
+    "existingPlaceholder": "请输入你的游戏ID",
+    "signIn": "登录",
+    "signingIn": "登录中...",
+    "orDivider": "或者",
+    "generate": "生成新ID",
+    "generating": "生成中...",
+    "generatedNotice": "请保存此ID，可用于在其他设备继续城市进度。",
+    "error": {
+      "required": "请输入有效的游戏ID。"
+    },
+    "currentId": "游戏ID",
+    "copy": "复制",
+    "copied": "已复制",
+    "logout": "退出登录",
+    "remember": "妥善保管此ID，它用于关联你的服务器存档。"
+  },
   "buildingSidebar": {
     "constructionUnits": "建造单位",
     "operationMode": "操作模式",
