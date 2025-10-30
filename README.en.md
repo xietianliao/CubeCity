@@ -56,6 +56,57 @@ The game revolves around four main operation modes, allowing you to easily manag
 *   **📋 Product Requirements:** [PRD Document](./docs/PRD.md) - Product requirements document
 *   **🔧 Technical Design:** [TD Document](./docs/TD.md) - Technical design document
 
+## 🔌 Backend API Configuration
+
+The frontend now registers and logs in against the Go backend, and uses the issued token to query a profile endpoint for the current balance. By default it targets `http://127.0.0.1:8080`, but you can override the endpoints with environment variables:
+
+```bash
+VITE_API_BASE_URL="http://127.0.0.1:8080"              # Register / login API
+VITE_PROFILE_API_URL="https://gamesite-api.16z.net/api/me"  # Profile & balance API
+```
+
+### API contract
+
+1. **Register an account**
+
+   ```http
+   POST /api/register
+   Content-Type: application/json
+
+   {
+     "email": "player@example.com",
+     "password": "your-password",
+     "game_id": 12345678901
+   }
+   ```
+
+   * `game_id` must be an 11-digit number and cannot start with 0
+   * Success response: `{ "message": "注册成功", "game_id": 12345678901 }`
+
+2. **Log in to retrieve a token**
+
+   ```http
+   POST /api/login
+   Content-Type: application/json
+
+   {
+     "email": "player@example.com",
+     "password": "your-password"
+   }
+   ```
+
+   * Success response: `{ "token": "<jwt-token>" }`
+
+3. **Fetch the coin balance**
+
+   ```http
+   GET https://gamesite-api.16z.net/api/me
+   Authorization: <jwt-token>
+   ```
+
+   * Sample response: `{ "email": "player@example.com", "game_id": "12345678901", "balance": 3000 }`
+   * Set `VITE_PROFILE_API_URL` if you host the profile endpoint elsewhere
+
 ## 🚀 Roadmap
 
 We plan to add more exciting features in the future, including:

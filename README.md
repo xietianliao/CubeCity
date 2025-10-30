@@ -58,6 +58,57 @@ Welcome to CubeCity! This is a cartoon-style 2.5D city simulation game where you
 *   **📋 产品需求:** [PRD 文档](./docs/PRD.md) - 产品需求文档
 *   **🔧 技术设计:** [TD 文档](./docs/TD.md) - 技术设计文档
 
+## 🔌 后端接口配置
+
+前端会调用 Go 后端完成注册、登录，并使用登录返回的 token 从远端接口读取金币余额。默认情况下会请求 `http://127.0.0.1:8080`，也可以通过设置环境变量调整：
+
+```bash
+VITE_API_BASE_URL="http://127.0.0.1:8080"      # 注册/登录接口
+VITE_PROFILE_API_URL="https://gamesite-api.16z.net/api/me"  # 用户金币接口
+```
+
+### 接口约定
+
+1. **注册账号**
+
+   ```http
+   POST /api/register
+   Content-Type: application/json
+
+   {
+     "email": "player@example.com",
+     "password": "your-password",
+     "game_id": 12345678901
+   }
+   ```
+
+   * `game_id` 必须为 11 位数字且不能以 0 开头
+   * 成功返回示例：`{ "message": "注册成功", "game_id": 12345678901 }`
+
+2. **登录获取 token**
+
+   ```http
+   POST /api/login
+   Content-Type: application/json
+
+   {
+     "email": "player@example.com",
+     "password": "your-password"
+   }
+   ```
+
+   * 成功返回示例：`{ "token": "<jwt-token>" }`
+
+3. **查询金币余额**
+
+   ```http
+   GET https://gamesite-api.16z.net/api/me
+   Authorization: <jwt-token>
+   ```
+
+   * 响应示例：`{ "email": "player@example.com", "game_id": "12345678901", "balance": 3000 }`
+   * 如需自定义地址，可设置 `VITE_PROFILE_API_URL`
+
 ## 🚀 未来展望
 
 我们计划在未来为游戏增加更多有趣的功能，包括：

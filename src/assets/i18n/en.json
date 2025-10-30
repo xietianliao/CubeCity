@@ -14,6 +14,39 @@
       "musicSettings": "Music Settings"
     }
   },
+  "auth": {
+    "title": "Welcome back, Mayor",
+    "description": "Log in with your email to sync your city progress and balance.",
+    "tabLogin": "Log In",
+    "tabRegister": "Register",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "gameIdLabel": "Game ID",
+    "gameIdPlaceholder": "Enter the 11-digit game ID",
+    "generateId": "Generate ID",
+    "gameIdHint": "The ID must be 11 digits and cannot start with 0.",
+    "signIn": "Log In",
+    "signingIn": "Signing in...",
+    "createAccount": "Register & Log In",
+    "creatingAccountBusy": "Registering...",
+    "loggedInAs": "Signed in as",
+    "unknownEmail": "Unknown email",
+    "currentId": "Game ID",
+    "missingGameId": "Pending sync from server",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "logout": "Sign Out",
+    "remember": "Keep this ID safe. It links your progress to the server.",
+    "error": {
+      "missingCredentials": "Please enter your email and password.",
+      "missingRegistrationFields": "Please enter your email, password, and game ID.",
+      "invalidGameId": "The game ID must be 11 digits and cannot start with 0.",
+      "genericLogin": "Unable to log in. Please try again.",
+      "genericRegister": "Unable to register right now. Please try again later."
+    }
+  },
   "buildingSidebar": {
     "constructionUnits": "Construction Units",
     "operationMode": "Operation Mode",

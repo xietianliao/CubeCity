@@ -15,6 +15,39 @@
       "musicSettings": "音乐设置"
     }
   },
+  "auth": {
+    "title": "欢迎回来，市长",
+    "description": "使用邮箱登录，同步城市进度和金币余额。",
+    "tabLogin": "登录",
+    "tabRegister": "注册",
+    "emailLabel": "邮箱",
+    "emailPlaceholder": "example@example.com",
+    "passwordLabel": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "gameIdLabel": "游戏ID",
+    "gameIdPlaceholder": "请输入11位游戏ID",
+    "generateId": "生成ID",
+    "gameIdHint": "ID必须为11位数字且不能以0开头。",
+    "signIn": "登录",
+    "signingIn": "登录中...",
+    "createAccount": "注册并登录",
+    "creatingAccountBusy": "注册中...",
+    "loggedInAs": "当前账号",
+    "unknownEmail": "未知邮箱",
+    "currentId": "游戏ID",
+    "missingGameId": "等待服务器同步",
+    "copy": "复制",
+    "copied": "已复制",
+    "logout": "退出登录",
+    "remember": "妥善保管此ID，它用于关联你的服务器存档。",
+    "error": {
+      "missingCredentials": "请输入邮箱和密码。",
+      "missingRegistrationFields": "请输入邮箱、密码和游戏ID。",
+      "invalidGameId": "游戏ID必须为11位数字且不能以0开头。",
+      "genericLogin": "无法登录，请稍后再试。",
+      "genericRegister": "无法注册，请稍后再试。"
+    }
+  },
   "buildingSidebar": {
     "constructionUnits": "建造单位",
     "operationMode": "操作模式",

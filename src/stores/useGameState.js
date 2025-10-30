@@ -1,4 +1,6 @@
 import { getAdjustedStabilityRate, STABILITY_CONFIG } from '@/constants/constants.js'
+import { loginWithCredentials, registerAccount } from '@/js/services/auth-service.js'
+import { fetchProfileFromApi } from '@/js/services/credits-service.js'
 import { getEffectiveBuildingValue } from '@/js/utils/building-interaction-utils.js'
 import { defineStore } from 'pinia'
 
@@ -19,6 +21,12 @@ export const useGameState = defineStore('gameState', {
     // 游戏时间和经济
     gameDay: 1,
     credits: 3000,
+    gameId: null,
+    authToken: null,
+    userEmail: '',
+    authStatus: 'idle',
+    authError: null,
+    isFetchingCredits: false,
 
     // 城市属性
     territory: 16,
@@ -39,6 +47,7 @@ export const useGameState = defineStore('gameState', {
     // 移除：stabilityIntervalId: null,
   }),
   getters: {
+    isAuthenticated: state => Boolean(state.authToken),
     /**
      * 计算每日总收入（直接使用metadata中的detail，大幅提升性能）
      * @param {object} state - 游戏状态
@@ -228,12 +237,178 @@ export const useGameState = defineStore('gameState', {
     setSelectedPosition(position) {
       this.selectedPosition = position
     },
+    async fetchCredits({ signal } = {}) {
+      if (!this.authToken) {
+        return
+      }
+
+      this.isFetchingCredits = true
+      try {
+        const profile = await fetchProfileFromApi({ signal, token: this.authToken })
+        if (Number.isFinite(profile.balance)) {
+          this.setCredits(profile.balance)
+        }
+        if (profile.gameId) {
+          this.setGameId(profile.gameId)
+        }
+        if (profile.email) {
+          this.setUserEmail(profile.email)
+        }
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        console.error('[GameState] Failed to fetch profile from API', error)
+        const message = this.language === 'zh'
+          ? '无法从服务器获取金币数据，已使用本地数值'
+          : 'Unable to fetch coin data from server, using local value'
+        this.addToast(message, 'error')
+      }
+      finally {
+        this.isFetchingCredits = false
+      }
+    },
     // 金币
     setCredits(credits) {
       this.credits = credits
     },
     updateCredits(credits) {
       this.credits += credits
+    },
+    setGameId(gameId) {
+      if (typeof gameId === 'number') {
+        this.gameId = String(gameId)
+        return
+      }
+      if (typeof gameId === 'string') {
+        const trimmed = gameId.trim()
+        this.gameId = trimmed.length > 0 ? trimmed : null
+        return
+      }
+      this.gameId = null
+    },
+    clearGameSession() {
+      this.gameId = null
+      this.authToken = null
+      this.userEmail = ''
+    },
+    setAuthToken(token) {
+      this.authToken = token
+    },
+    setUserEmail(email) {
+      this.userEmail = email
+    },
+    setAuthStatus(status) {
+      this.authStatus = status
+    },
+    setAuthError(message) {
+      this.authError = message
+    },
+    async login({ email, password, signal } = {}) {
+      const trimmedEmail = typeof email === 'string' ? email.trim() : ''
+      const trimmedPassword = typeof password === 'string' ? password.trim() : ''
+
+      if (!trimmedEmail || !trimmedPassword) {
+        const message = this.language === 'zh'
+          ? '请输入邮箱和密码'
+          : 'Please enter your email and password'
+        this.setAuthError(message)
+        throw new Error(message)
+      }
+
+      this.setAuthStatus('authenticating')
+      this.setAuthError(null)
+      try {
+        const token = await loginWithCredentials({ email: trimmedEmail, password: trimmedPassword, signal })
+        this.setAuthToken(token)
+        this.setUserEmail(trimmedEmail)
+        await this.fetchCredits({ signal })
+        const message = this.language === 'zh'
+          ? '登录成功，金币已刷新'
+          : 'Signed in and refreshed coins'
+        this.addToast(message, 'success')
+        return token
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        const message = error?.message || (this.language === 'zh'
+          ? '登录失败，请检查邮箱和密码'
+          : 'Login failed, please verify your credentials')
+        this.setAuthError(message)
+        this.addToast(message, 'error')
+        throw error
+      }
+      finally {
+        this.setAuthStatus('idle')
+      }
+    },
+    async registerAndLogin({ email, password, gameId, signal } = {}) {
+      const trimmedEmail = typeof email === 'string' ? email.trim() : ''
+      const trimmedPassword = typeof password === 'string' ? password.trim() : ''
+      const trimmedGameId = typeof gameId === 'string' ? gameId.trim() : ''
+
+      if (!trimmedEmail || !trimmedPassword || !trimmedGameId) {
+        const message = this.language === 'zh'
+          ? '请输入邮箱、密码和游戏ID'
+          : 'Please enter your email, password, and game ID'
+        this.setAuthError(message)
+        throw new Error(message)
+      }
+
+      this.setAuthStatus('authenticating')
+      this.setAuthError(null)
+      try {
+        const { gameId: registeredGameId } = await registerAccount({
+          email: trimmedEmail,
+          password: trimmedPassword,
+          gameId: trimmedGameId,
+          signal,
+        })
+        if (registeredGameId) {
+          this.setGameId(registeredGameId)
+        }
+        const token = await loginWithCredentials({
+          email: trimmedEmail,
+          password: trimmedPassword,
+          signal,
+        })
+        this.setAuthToken(token)
+        this.setUserEmail(trimmedEmail)
+        await this.fetchCredits({ signal })
+        const message = this.language === 'zh'
+          ? '注册并登录成功，金币已刷新'
+          : 'Registration complete. Signed in and refreshed coins'
+        this.addToast(message, 'success')
+        return token
+      }
+      catch (error) {
+        if (error?.name === 'AbortError') {
+          throw error
+        }
+        const message = error?.message || (this.language === 'zh'
+          ? '注册失败，请稍后再试'
+          : 'Unable to register right now')
+        this.setAuthError(message)
+        this.addToast(message, 'error')
+        throw error
+      }
+      finally {
+        this.setAuthStatus('idle')
+      }
+    },
+    logout() {
+      this.clearGameSession()
+      this.setAuthStatus('idle')
+      this.setAuthError(null)
+      this.isFetchingCredits = false
+      this.credits = 3000
+      const message = this.language === 'zh'
+        ? '已退出当前账号'
+        : 'Signed out of the current session'
+      this.addToast(message, 'info')
     },
     setTerritory(territory) {
       this.territory = territory

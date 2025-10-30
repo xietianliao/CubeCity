@@ -2,13 +2,13 @@
 import { eventBus } from '@/js/utils/event-bus.js'
 import { useGameState } from '@/stores/useGameState.js'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import AnimatedNumber from './AnimatedNumber.vue'
 import AudioManager from './AudioManager.vue'
 import GuideModal from './GuideModal.vue'
 
 const gameState = useGameState()
-const { credits, totalJobs, maxPopulation, territory, citySize, cityLevel, cityName, language, showMapOverview, gameDay, power, maxPower, musicEnabled, musicVolume, isPlayingMusic } = storeToRefs(gameState)
+const { credits, totalJobs, maxPopulation, territory, citySize, cityLevel, cityName, language, showMapOverview, gameDay, power, maxPower, musicEnabled, musicVolume, isPlayingMusic, gameId, isAuthenticated, userEmail } = storeToRefs(gameState)
 
 // 音乐相关
 const showVolumeSlider = ref(false)
@@ -46,6 +46,12 @@ watch([totalJobs, maxPopulation, power, maxPower], ([newTotalJobs, newMaxPopulat
   }
 }, { immediate: true })
 
+watch(isAuthenticated, (value) => {
+  if (!value) {
+    resetCopyState()
+  }
+})
+
 function toggleLang() {
   gameState.setLanguage(language.value === 'zh' ? 'en' : 'zh')
 }
@@ -57,6 +63,9 @@ function toggleMapOverview() {
 // 新手指南状态
 const showGuide = ref(false)
 
+const copySuccess = ref(false)
+let copyResetTimeout = null
+
 function toggleGuide() {
   showGuide.value = !showGuide.value
 }
@@ -65,6 +74,64 @@ function toggleGuide() {
 function showGuideModal() {
   showGuide.value = true
 }
+
+function resetCopyState() {
+  if (copyResetTimeout) {
+    clearTimeout(copyResetTimeout)
+    copyResetTimeout = null
+  }
+  copySuccess.value = false
+}
+
+async function copyCurrentGameId() {
+  if (!gameId.value) {
+    return
+  }
+
+  const textToCopy = String(gameId.value)
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(textToCopy)
+    }
+    else {
+      const textarea = document.createElement('textarea')
+      textarea.value = textToCopy
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.top = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    copySuccess.value = true
+    if (copyResetTimeout) {
+      clearTimeout(copyResetTimeout)
+    }
+    copyResetTimeout = setTimeout(() => {
+      copySuccess.value = false
+      copyResetTimeout = null
+    }, 2000)
+  }
+  catch (error) {
+    console.error('[TopBar] Failed to copy game ID', error)
+    const message = language.value === 'zh'
+      ? '无法复制游戏ID，请手动记录'
+      : 'Unable to copy the game ID, please save it manually'
+    gameState.addToast(message, 'error')
+  }
+}
+
+function handleLogout() {
+  resetCopyState()
+  gameState.logout()
+}
+
+onUnmounted(() => {
+  resetCopyState()
+})
 </script>
 
 <template>
@@ -207,6 +274,47 @@ function showGuideModal() {
           >
             {{ language === 'zh' ? (showMapOverview ? '🗺️ 隐藏' : '🗺️ 地图') : (showMapOverview ? '🗺️ Hide' : '🗺️ Map') }}
           </button>
+
+          <div
+            v-if="isAuthenticated"
+            class="col-span-3 rounded-lg border border-gray-700/80 bg-gray-800/70 px-3 py-2 text-xs text-gray-300"
+          >
+            <div class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1">
+                <div class="uppercase tracking-[0.35em] text-[0.6rem] text-gray-400">
+                  {{ $t('auth.loggedInAs') }}
+                </div>
+                <div class="break-all font-mono text-sm text-white">
+                  {{ userEmail || $t('auth.unknownEmail') }}
+                </div>
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div class="uppercase tracking-[0.35em] text-[0.6rem] text-gray-400">
+                    {{ $t('auth.currentId') }}
+                  </div>
+                  <div class="mt-1 break-all font-mono text-sm text-industrial-green">
+                    {{ gameId || $t('auth.missingGameId') }}
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="rounded bg-gray-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    :disabled="!gameId"
+                    @click="copyCurrentGameId"
+                  >
+                    {{ copySuccess ? $t('auth.copied') : $t('auth.copy') }}
+                  </button>
+                  <button
+                    class="rounded bg-red-600/80 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-500"
+                    @click="handleLogout"
+                  >
+                    {{ $t('auth.logout') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
